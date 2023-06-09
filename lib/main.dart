@@ -36,15 +36,6 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -77,6 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 ListInfo(),
                 Spacer(),
+                RefreshKeyButton(),
                 RefreshButton(),
                 AddTopButton(),
                 AddBottomButton()
@@ -85,6 +77,21 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class RefreshKeyButton extends StatelessWidget {
+  const RefreshKeyButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: () {
+        context.read<ListBloc>().add(ListRefreshSession());
+      },
+      icon: const Icon(Icons.key_off),
+      tooltip: 'refresh list',
     );
   }
 }
@@ -141,7 +148,8 @@ class ListInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ListBloc, ListState>(
       builder: (context, state) {
-        return Text('session: ${state.session} before: ${state.before.length} ${state.after.length} ');
+        return Text(
+            'session: ${state.session} before: ${state.before.length}  ${state.beforeHeight} middle: ${state.middle.length}  ${state.middleHeight}   after:${state.after.length} ${state.afterHeight}');
       },
     );
   }

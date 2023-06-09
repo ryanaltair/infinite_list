@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -17,7 +15,10 @@ class _InfiniteListState extends State<InfiniteList> {
 
   @override
   void initState() {
-    controller = ScrollController();
+    controller = ScrollController(
+      keepScrollOffset: false,
+      debugLabel: 'list',
+    );
     super.initState();
   }
 
@@ -25,27 +26,6 @@ class _InfiniteListState extends State<InfiniteList> {
   void dispose() {
     controller.dispose();
     super.dispose();
-  }
-
-  jumpToBottom() {
-    final value = controller.position.maxScrollExtent;
-
-    for (final ScrollPosition position
-        in List<ScrollPosition>.of(controller.positions)) {
-      if (position is ScrollPositionWithSingleContext) {
-        position.goIdle();
-        if (position.pixels != value) {
-          final double oldPixels = position.pixels;
-          position.forcePixels(value);
-          // position.didStartScroll();
-          // position.didUpdateScrollPositionBy(position.pixels - oldPixels);
-          // position.didEndScroll();
-        }
-        // position.goBallistic(0.0);
-      } else {
-        position.jumpTo(value);
-      }
-    }
   }
 
   final centerKey = const ValueKey('center');
@@ -82,25 +62,44 @@ class ScrollView extends StatefulWidget {
 
 class _ScrollViewState extends State<ScrollView> {
   late Future<bool> future;
+  final GlobalKey _key = GlobalKey();
+  double _anchor = 0.0000;
+  bool _showReversed = false;
+  bool _mask = true;
   @override
   void initState() {
     future = Future<bool>.delayed(const Duration(milliseconds: 1000), () {
       return true;
     });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      // print(_getStageSize());
+    });
     WidgetsBinding.instance.addPostFrameCallback(
       (timeStamp) {
-        if (!widget.controller.hasClients) {
-          print('no clients');
-          return;
-        }
-        print('jump');
-        widget.controller.jumpTo(widget.controller.position.maxScrollExtent);
-        // duration: const Duration(microseconds: 1),
-        // curve: Curves.linear);
-        // jumpToBottom();
+        print(timeStamp);
+        reRender();
       },
     );
     super.initState();
+  }
+
+  Future reRender() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    final height = _getStageSize().height;
+    final viewHeight = context.size?.height ?? 0;
+    print([height, viewHeight]);
+    if (height > viewHeight) {
+      _anchor = 0.99999;
+      _showReversed = true;
+    }
+    _mask = false;
+    setState(() {});
+  }
+
+  Size _getStageSize() {
+    final RenderBox renderLogo =
+        _key.currentContext!.findRenderObject()! as RenderBox;
+    return renderLogo.size;
   }
 
   @override
@@ -110,25 +109,76 @@ class _ScrollViewState extends State<ScrollView> {
         CustomScrollView(
           center: widget.centerKey,
           controller: widget.controller,
+          anchor: _anchor,
           slivers: [
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  return ListItem(widget.state.getBefore(index) ?? 'none');
+                  final content = ListState.getBefore(
+                      widget.state.before.reversed.toList()[index]);
+                  return ListItem(content);
                 },
                 childCount: widget.state.before.length,
                 addAutomaticKeepAlives: false,
                 addRepaintBoundaries: false,
               ),
             ),
+            SliverOffstage(
+              offstage: true,
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  key: _key,
+                  children: [
+                    ...widget.state.middle
+                        .map((e) {
+                          final content = ListState.getMiddle(e);
+                          return ListItem(content);
+                        })
+                        .toList()
+                        .reversed
+                  ],
+                ),
+              ),
+            ),
+            if (_showReversed)
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final content = ListState.getMiddle(
+                        widget.state.middle.reversed.toList()[index]);
+                    return ListItem(
+                      content,
+                      color: Colors.greenAccent,
+                    );
+                  },
+                  childCount: widget.state.middle.length,
+                  addAutomaticKeepAlives: false,
+                  addRepaintBoundaries: false,
+                ),
+              ),
+            SliverPadding(
+                key: widget.centerKey, padding: const EdgeInsets.only(top: 0)),
+            if (!_showReversed)
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final content = ListState.getMiddle(
+                        widget.state.middle.toList()[index]);
+                    return ListItem(
+                      content,
+                      color: Colors.redAccent,
+                    );
+                  },
+                  childCount: widget.state.middle.length,
+                  addAutomaticKeepAlives: false,
+                  addRepaintBoundaries: false,
+                ),
+              ),
             SliverList(
-              key: widget.centerKey,
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  return ListItem(
-                    widget.state.getAfter(index) ?? 'none',
-                    color: Colors.cyan,
-                  );
+                  final content = ListState.getAfter(widget.state.after[index]);
+                  return ListItem(content, color: Colors.cyan);
                 },
                 childCount: widget.state.after.length,
                 addAutomaticKeepAlives: false,
@@ -137,30 +187,28 @@ class _ScrollViewState extends State<ScrollView> {
             )
           ],
         ),
-        FutureBuilder(
-            future: future,
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                return const SizedBox();
-              }
-              return Container(
-                width: 2400,
-                height: 2400,
-                color: Colors.redAccent,
-              );
-            })
+        if (_mask)
+          Container(
+            width: 2400,
+            height: 2400,
+            color: Colors.white,
+          )
       ],
     );
   }
 }
 
 class ListItem extends StatelessWidget {
-  const ListItem(this.content, {super.key, this.color = Colors.amber});
+  const ListItem(
+    this.content, {
+    super.key,
+    this.color = Colors.amber,
+  });
   final Color color;
   final String content;
   @override
   Widget build(BuildContext context) {
-    final height = pow(sin(content.length / pi), 2) * 100.0 + 50;
+    final height = ListState.getHeight(content);
     return DecoratedBox(
       decoration: BoxDecoration(color: color),
       child: SizedBox(

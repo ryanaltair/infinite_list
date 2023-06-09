@@ -12,6 +12,10 @@ class ListBloc extends Bloc<ListEvent, ListState> {
       return Random().nextInt(50) + 10;
     }
 
+    int generateSessionKey() {
+      return Random().nextInt(50);
+    }
+
     on<ListLoadUpper>((event, emit) {
       emit(state.copyWith(before: [generateItem(), ...state.before]));
     });
@@ -20,10 +24,16 @@ class ListBloc extends Bloc<ListEvent, ListState> {
     });
 
     on<ListRegenerate>((event, emit) {
-      final count = Random().nextInt(30) + 2;
+      final count = Random().nextInt(20) + 1;
 
       final list = List.generate(count, (index) => generateItem());
-      emit(ListState(after: [0, ...list], session: count, anchor: list.last));
+      emit(ListState(middle: [
+        0,
+        ...list,
+      ], session: generateSessionKey(), anchor: list.last));
+    });
+    on<ListRefreshSession>((event, emit) {
+      emit(state.copyWith(session: generateSessionKey()));
     });
   }
 }

@@ -7,5 +7,6 @@ class ListLoadUpper extends ListEvent {}
 
 class ListLoadBottom extends ListEvent {}
 
-
 class ListRegenerate extends ListEvent {}
+
+class ListRefreshSession extends ListEvent {}
