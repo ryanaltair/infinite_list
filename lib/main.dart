@@ -52,42 +52,97 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return BlocProvider(
-      create: (context) => ListBloc(),
+      create: (context) => ListBloc()..add(ListRegenerate()),
       child: Scaffold(
         appBar: AppBar(
           // Here we take the value from the MyHomePage object that was created by
           // the App.build method, and use it to set our appbar title.
           title: Text(widget.title),
         ),
-        body: InfiniteList(),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _incrementCounter,
-          tooltip: 'Increment',
-          child: const Icon(Icons.add),
-        ), // This trailing comma makes auto-formatting nicer for build methods.
+        body: Column(
+          children: [
+            Expanded(
+              child: BlocBuilder<ListBloc, ListState>(
+                builder: (context, state) {
+                  return InfiniteList(
+                    key: Key(state.session.toString()),
+                  );
+                },
+              ),
+            ),
+            const Row(
+              children: [
+                ListInfo(),
+                Spacer(),
+                RefreshButton(),
+                AddTopButton(),
+                AddBottomButton()
+              ],
+            )
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class RefreshButton extends StatelessWidget {
+  const RefreshButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: () {
+        context.read<ListBloc>().add(ListRegenerate());
+      },
+      tooltip: 'refresh list',
+      icon: const Icon(Icons.refresh),
+    );
+  }
+}
+
+class AddTopButton extends StatelessWidget {
+  const AddTopButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: () {
+        context.read<ListBloc>().add(ListLoadUpper());
+      },
+      tooltip: 'add top',
+      icon: const Icon(Icons.vertical_align_top),
+    );
+  }
+}
+
+class AddBottomButton extends StatelessWidget {
+  const AddBottomButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: () {
+        context.read<ListBloc>().add(ListLoadBottom());
+      },
+      tooltip: 'add bottom',
+      icon: const Icon(Icons.vertical_align_bottom),
+    );
+  }
+}
+
+class ListInfo extends StatelessWidget {
+  const ListInfo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ListBloc, ListState>(
+      builder: (context, state) {
+        return Text('session: ${state.session} before: ${state.before.length} ${state.after.length} ');
+      },
     );
   }
 }
