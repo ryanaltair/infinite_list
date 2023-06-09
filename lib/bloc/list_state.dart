@@ -19,7 +19,7 @@ class ListState {
   }
 
   static double getHeight(String content) {
-    return 50;
+    // return 50;
     final height = pow(sin(content.length / pi), 2) * 100.0 + 50;
     return height;
   }
